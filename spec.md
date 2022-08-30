@@ -11,10 +11,17 @@ Authors:
 
 The keywords "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" are to be interpreted as described in [RFC 2119](http://tools.ietf.org/html/rfc2119) (Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997).
 
+关键字“MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY”和“OPTIONAL”将按照 [RFC 2119](http://tools.ietf.org/html/rfc2119) 中的描述进行解释（Bradner, S.，“在 RFC 中使用的关键字以指示需求级别”，BCP 14，RFC 2119 ，1997 年 3 月）。
+
 The key words "unspecified", "undefined", and "implementation-defined" are to be interpreted as described in the [rationale for the C99 standard](http://www.open-std.org/jtc1/sc22/wg14/www/C99RationaleV5.10.pdf#page=18).
+
+关键字“未指定”、“未定义”和“实现定义”将按照[C99 标准的基本原理](http://www.open-std.org/jtc1/sc22/wg14) 中的说明进行解释/www/C99RationaleV5.10.pdf#page=18)。
 
 An implementation is not compliant if it fails to satisfy one or more of the MUST, REQUIRED, or SHALL requirements for the protocols it implements.
 An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL requirements for the protocols it implements.
+
+如果一个实现不能满足它实现的协议的一个或多个 MUST、REQUIRED 或 SHALL 要求，则它是不兼容的。
+如果一个实现满足它实现的协议的所有 MUST、REQUIRED 和 SHALL 要求，那么它就是合规的。
 
 ## Terminology
 
@@ -35,6 +42,8 @@ An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL
 
 To define an industry standard “Container Storage Interface” (CSI) that will enable storage vendors (SP) to develop a plugin once and have it work across a number of container orchestration (CO) systems.
 
+定义一个行业标准的“容器存储接口”（CSI），使存储供应商（SP）能够开发一个插件并让它在多个容器编排（CO）系统中工作。
+
 ### Goals in MVP
 
 The Container Storage Interface (CSI) will
@@ -52,6 +61,21 @@ The Container Storage Interface (CSI) will
   * Describe a process by which a Supervisor configures a Plugin.
   * Container deployment considerations (`CAP_SYS_ADMIN`, mount namespace, etc.).
 
+容器存储接口 (CSI) 将
+
+* 使 SP 作者能够编写一个符合 CSI 的插件，该插件可以在所有实现 CSI 的 CO 上“正常工作”。
+*定义启用的API（RPC）：
+   * 卷的动态配置和取消配置。
+   *从节点附加或分离卷。
+   * 从节点挂载/卸载卷。
+   * 块卷和可挂载卷的消耗。
+   * 本地存储提供程序（例如，设备映射器、lvm）。
+   * 创建和删除快照（快照的来源是一个卷）。
+   * 从快照配置新卷（恢复快照，其中原始卷中的数据被擦除并替换为快照中的数据，超出范围）。
+* 定义插件协议建议。
+   * 描述主管配置插件的过程。
+   * 容器部署注意事项（`CAP_SYS_ADMIN`、挂载命名空间等）。
+
 ### Non-Goals in MVP
 
 The Container Storage Interface (CSI) explicitly will not define, provide, or dictate:
@@ -66,11 +90,27 @@ The Container Storage Interface (CSI) explicitly will not define, provide, or di
   Compliance is determined by the Plugin implementation (and any backend storage system(s) upon which it depends).
   CSI SHALL NOT obstruct a Plugin Supervisor or CO from interacting with Plugin-managed volumes in a POSIX-compliant manner.
 
+容器存储接口 (CSI) 明确不会定义、提供或规定：
+
+* 插件主管管理插件生命周期的具体机制，包括：
+   * 如何维护状态（例如连接、安装等）。
+   * 如何部署、安装、升级、卸载、监控或重生（以防意外终止）插件。
+* 代表“存储等级”（又名“存储类别”）的第一类消息结构/字段。
+* 协议级认证和授权。
+* 插件的包装。
+* POSIX 合规性：CSI 不保证所提供的卷是符合 POSIX 的文件系统。
+   合规性由插件实现（以及它所依赖的任何后端存储系统）确定。
+   CSI 不得阻碍插件主管或 CO 以符合 POSIX 的方式与插件管理的卷进行交互。
+
 ## Solution Overview
 
 This specification defines an interface along with the minimum operational and packaging recommendations for a storage provider (SP) to implement a CSI compatible plugin.
 The interface declares the RPCs that a plugin MUST expose: this is the **primary focus** of the CSI specification.
 Any operational and packaging recommendations offer additional guidance to promote cross-CO compatibility.
+
+该规范定义了一个接口以及存储提供者 (SP) 实现 CSI 兼容插件的最低操作和打包建议。
+该接口声明了插件必须公开的 RPC：这是 CSI 规范的**主要焦点**。
+任何操作和包装建议都为促进跨 CO 兼容性提供了额外的指导。
 
 ### Architecture
 
@@ -78,6 +118,12 @@ The primary focus of this specification is on the **protocol** between a CO and 
 It SHOULD be possible to ship cross-CO compatible Plugins for a variety of deployment architectures.
 A CO SHOULD be equipped to handle both centralized and headless plugins, as well as split-component and unified plugins.
 Several of these possibilities are illustrated in the following figures.
+
+本规范的主要重点是 CO 和插件之间的**协议**。
+应该可以为各种部署架构提供跨 CO 兼容的插件。
+应该配备一个 CO 来处理集中式和无头插件，以及拆分组件和统一插件。
+下图中说明了其中几种可能性。
+
 
 ```
                              CO "Master" Host
@@ -103,6 +149,9 @@ Several of these possibilities are illustrated in the following figures.
 Figure 1: The Plugin runs on all nodes in the cluster: a centralized
 Controller Plugin is available on the CO master host and the Node
 Plugin is available on all of the CO Nodes.
+
+图 1：插件在集群中的所有节点上运行：集中式控制器插件在 CO 主控主机和节点上可用
+插件可用于所有 CO 节点。
 ```
 
 ```
@@ -125,6 +174,9 @@ Plugin is available on all of the CO Nodes.
 Figure 2: Headless Plugin deployment, only the CO Node hosts run
 Plugins. Separate, split-component Plugins supply the Controller
 Service and the Node Service respectively.
+
+图 2：无头插件部署，只有 CO 节点主机运行插件。
+单独的、拆分组件的插件提供控制器服务和节点服务分别。
 ```
 
 ```
@@ -142,6 +194,9 @@ Service and the Node Service respectively.
 Figure 3: Headless Plugin deployment, only the CO Node hosts run
 Plugins. A unified Plugin component supplies both the Controller
 Service and Node Service.
+
+图 3：无头插件部署，只有 CO 节点主机运行插件。
+一个统一的插件组件同时提供控制器服务和节点服务。
 ```
 
 ```
@@ -159,6 +214,9 @@ Figure 4: Headless Plugin deployment, only the CO Node hosts run
 Plugins. A Node-only Plugin component supplies only the Node Service.
 Its GetPluginCapabilities RPC does not report the CONTROLLER_SERVICE
 capability.
+
+图 4：无头插件部署，只有 CO 节点主机运行插件。 仅节点插件组件仅提供节点服务。
+它的 GetPluginCapabilities RPC 不报告 CONTROLLER_SERVICE能力。
 ```
 
 ### Volume Lifecycle
@@ -182,6 +240,8 @@ capability.
 
 Figure 5: The lifecycle of a dynamically provisioned volume, from
 creation to destruction.
+
+图 5：动态配置卷的生命周期，从创造到毁灭。
 ```
 
 ```
@@ -210,6 +270,8 @@ creation to destruction.
 Figure 6: The lifecycle of a dynamically provisioned volume, from
 creation to destruction, when the Node Plugin advertises the
 STAGE_UNSTAGE_VOLUME capability.
+
+图 6：动态配置卷的生命周期，从创建到销毁，当节点插件通告STAGE_UNSTAGE_VOLUME 能力。
 ```
 
 ```
@@ -232,6 +294,9 @@ STAGE_UNSTAGE_VOLUME capability.
 Figure 7: The lifecycle of a pre-provisioned volume that requires
 controller to publish to a node (`ControllerPublishVolume`) prior to
 publishing on the node (`NodePublishVolume`).
+
+图 7：需要的预配置卷的生命周期控制器发布到节点（`ControllerPublishVolume`）之前
+在节点上发布（`NodePublishVolume`）。
 ```
 
 ```
@@ -250,6 +315,9 @@ Figure 8: Plugins MAY forego other lifecycle steps by contraindicating
 them via the capabilities API. Interactions with the volumes of such
 plugins is reduced to `NodePublishVolume` and `NodeUnpublishVolume`
 calls.
+
+图 8：插件可能会通过禁忌放弃其他生命周期步骤它们通过功能 API。 与此类卷的交互
+插件被简化为 `NodePublishVolume` 和 `NodeUnpublishVolume`来电。
 ```
 
 The above diagrams illustrate a general expectation with respect to how a CO MAY manage the lifecycle of a volume via the API presented in this specification.
@@ -257,9 +325,16 @@ Plugins SHOULD expose all RPCs for an interface: Controller plugins SHOULD imple
 Unsupported RPCs SHOULD return an appropriate error code that indicates such (e.g. `CALL_NOT_IMPLEMENTED`).
 The full list of plugin capabilities is documented in the `ControllerGetCapabilities` and `NodeGetCapabilities` RPCs.
 
+上图说明了关于 CO 可以如何通过本规范中提供的 API 管理卷的生命周期的一般期望。
+插件应该为一个接口公开所有的 RPC：控制器插件应该为 `Controller` 服务实现所有的 RPC。
+不受支持的 RPC 应该返回一个适当的错误代码来指示这种情况（例如，`CALL_NOT_IMPLEMENTED`）。
+插件功能的完整列表记录在 `ControllerGetCapabilities` 和 `NodeGetCapabilities` RPCs 中。
+
 ## Container Storage Interface
 
 This section describes the interface between COs and Plugins.
+
+本节介绍 CO 和 Plugins 之间的接口。
 
 ### RPC Interface
 
@@ -269,6 +344,13 @@ Each SP MUST provide:
 * **Node Plugin**: A gRPC endpoint serving CSI RPCs that MUST be run on the Node whereupon an SP-provisioned volume will be published.
 * **Controller Plugin**: A gRPC endpoint serving CSI RPCs that MAY be run anywhere.
 * In some circumstances a single gRPC endpoint MAY serve all CSI RPCs (see Figure 3 in [Architecture](#architecture)).
+
+CO 通过 RPC 与插件交互。
+每个 SP 必须提供：
+
+* **节点插件**：服务 CSI RPC 的 gRPC 端点必须在节点上运行，然后将发布 SP 配置的卷。
+* **Controller Plugin**：服务 CSI RPC 的 gRPC 端点，可以在任何地方运行。
+* 在某些情况下，单个 gRPC 端点可以服务于所有 CSI RPC（参见 [Architecture](#architecture) 中的图 3）。
 
 ```protobuf
 syntax = "proto3";
@@ -327,6 +409,13 @@ There are three sets of RPCs:
 * **Identity Service**: Both the Node Plugin and the Controller Plugin MUST implement this sets of RPCs.
 * **Controller Service**: The Controller Plugin MUST implement this sets of RPCs.
 * **Node Service**: The Node Plugin MUST implement this sets of RPCs.
+
+共有三组 RPC：
+
+* **身份服务**：节点插件和控制器插件都必须实现这组 RPC。
+* **控制器服务**：控制器插件必须实现这组 RPC。
+* **节点服务**：节点插件必须实现这组 RPC。
+
 
 ```protobuf
 service Identity {
@@ -419,10 +508,18 @@ However, in some circumstances, the CO MAY lose state (for example when the CO c
 The plugin SHOULD handle this as gracefully as possible.
 The error code `ABORTED` MAY be returned by the plugin in this case (see the [Error Scheme](#error-scheme) section for details).
 
+一般来说，容器编排系统（CO）负责确保在给定时间每个卷“进行中”的调用不超过一个。
+但是，在某些情况下，CO 可能会丢失状态（例如，当 CO 崩溃并重新启动时），并且可能会同时为同一卷发出多个调用。
+插件应该尽可能优雅地处理这个问题。
+在这种情况下，插件可能会返回错误代码 `ABORTED`（有关详细信息，请参阅 [错误方案](#error-scheme) 部分）。
+
 #### Field Requirements
 
 The requirements documented herein apply equally and without exception, unless otherwise noted, for the fields of all protobuf message types defined by this specification.
 Violation of these requirements MAY result in RPC message data that is not compatible with all CO, Plugin, and/or CSI middleware implementations.
+
+除非另有说明，否则此处记录的要求同样且无例外地适用于本规范定义的所有 protobuf 消息类型的字段。
+违反这些要求可能会导致 RPC 消息数据与所有 CO、插件和/或 CSI 中间件实现不兼容。
 
 ##### Size Limits
 
@@ -430,6 +527,11 @@ CSI defines general size limits for fields of various types (see table below).
 The general size limit for a particular field MAY be overridden by specifying a different size limit in said field's description.
 Unless otherwise specified, fields SHALL NOT exceed the limits documented here.
 These limits apply for messages generated by both COs and plugins.
+
+CSI 定义了各种类型字段的一般大小限制（见下表）。
+可以通过在所述字段的描述中指定不同的大小限制来覆盖特定字段的一般大小限制。
+除非另有说明，否则字段不得超过此处记录的限制。
+这些限制适用于 CO 和插件生成的消息。
 
 | Size       | Field Type          |
 |------------|---------------------|
@@ -442,12 +544,23 @@ These limits apply for messages generated by both COs and plugins.
 * A `repeated` or `map` field listed as `REQUIRED` MUST contain at least 1 element.
 * A field noted as `OPTIONAL` MAY be specified and the specification SHALL clearly define expected behavior for the default, zero-value of such fields.
 
+>
+
+* 必须指定标记为“REQUIRED”的字段，但须遵守任何每个 RPC 的警告；警告应该很少见。
+* 列为 `REQUIRED` 的 `repeated` 或 `map` 字段必须包含至少 1 个元素。
+* 可以指定标记为“可选”的字段，并且规范应明确定义此类字段的默认零值的预期行为。
+
 Scalar fields, even REQUIRED ones, will be defaulted if not specified and any field set to the default value will not be serialized over the wire as per [proto3](https://developers.google.com/protocol-buffers/docs/proto3#default).
+
+标量字段，即使是必需的，如果未指定，将默认为默认值，并且任何设置为默认值的字段都不会按照 [proto3]（https://developers.google.com/protocol-buffers/docs/）通过网络进行序列化proto3#default）。
 
 #### Timeouts
 
 Any of the RPCs defined in this spec MAY timeout and MAY be retried.
 The CO MAY choose the maximum time it is willing to wait for a call, how long it waits between retries, and how many time it retries (these values are not negotiated between plugin and CO).
+
+本规范中定义的任何 RPC 都可以超时并且可以重试。
+CO 可以选择它愿意等待呼叫的最长时间、重试之间等待的时间以及重试的次数（这些值不是插件和 CO 之间协商的）。
 
 Idempotency requirements ensure that a retried call with the same fields continues where it left off when retried.
 The only way to cancel a call is to issue a "negation" call if one exists.
@@ -455,12 +568,24 @@ For example, issue a `ControllerUnpublishVolume` call to cancel a pending `Contr
 In some cases, a CO MAY NOT be able to cancel a pending operation because it depends on the result of the pending operation in order to execute the "negation" call.
 For example, if a `CreateVolume` call never completes then a CO MAY NOT have the `volume_id` to call `DeleteVolume` with.
 
+
+幂等性要求确保具有相同字段的重试调用在重试时从中断处继续。
+取消呼叫的唯一方法是发出“否定”呼叫（如果存在）。
+例如，发出 `ControllerUnpublishVolume` 调用以取消挂起的 `ControllerPublishVolume` 操作等。
+在某些情况下，CO 可能无法取消挂起的操作，因为它依赖于挂起操作的结果才能执行“否定”调用。
+例如，如果 `CreateVolume` 调用从未完成，则 CO 可能没有用于调用 `DeleteVolume` 的 `volume_id`。
+
 ### Error Scheme
 
 All CSI API calls defined in this spec MUST return a [standard gRPC status](https://github.com/grpc/grpc/blob/master/src/proto/grpc/status/status.proto).
 Most gRPC libraries provide helper methods to set and read the status fields.
 
+本规范中定义的所有 CSI API 调用必须返回 [标准 gRPC 状态](https://github.com/grpc/grpc/blob/master/src/proto/grpc/status/status.proto)。
+大多数 gRPC 库都提供帮助方法来设置和读取状态字段。
+
 The status `code` MUST contain a [canonical error code](https://github.com/grpc/grpc-go/blob/master/codes/codes.go). COs MUST handle all valid error codes. Each RPC defines a set of gRPC error codes that MUST be returned by the plugin when specified conditions are encountered. In addition to those, if the conditions defined below are encountered, the plugin MUST return the associated gRPC error code.
+
+状态“代码”必须包含 [规范错误代码](https://github.com/grpc/grpc-go/blob/master/codes/codes.go)。 CO 必须处理所有有效的错误代码。 每个 RPC 定义了一组 gRPC 错误代码，插件必须在遇到指定条件时返回这些错误代码。 除此之外，如果遇到下面定义的条件，插件必须返回相关的 gRPC 错误代码。
 
 | Condition | gRPC Code | Description | Recovery Behavior |
 |-----------|-----------|-------------|-------------------|
@@ -471,10 +596,24 @@ The status `code` MUST contain a [canonical error code](https://github.com/grpc/
 | Call not implemented | 12 UNIMPLEMENTED | The invoked RPC is not implemented by the Plugin or disabled in the Plugin's current mode of operation. | Caller MUST NOT retry. Caller MAY call `GetPluginCapabilities`, `ControllerGetCapabilities`, or `NodeGetCapabilities` to discover Plugin capabilities. |
 | Not authenticated | 16 UNAUTHENTICATED | The invoked RPC does not carry secrets that are valid for authentication. | Caller SHALL either fix the secrets provided in the RPC, or otherwise regalvanize said secrets such that they will pass authentication by the Plugin for the attempted RPC, after which point the caller MAY retry the attempted RPC. |
 
+| 条件 | gRPC 代码| 说明 | 恢复行为 |
+|-----------|-----------|-------------|-------------------|
+|缺少必填字段| 3 INVALID_ARGUMENT | 表示请求中缺少必填字段。 'status.message' 字段中可能会提供更多人类可读的信息。| 调用者必须在重试之前通过添加缺少的必填字段来修复请求。|
+|请求中的字段无效或不受支持 | 3 INVALID_ARGUMENT |表示该字段中的一个或多个字段不是插件允许的，或者具有无效值。 gRPC `status.message` 字段中可能会提供更多人类可读的信息。 |调用者必须在重试之前修复该字段。 |
+|权限被拒绝 | 7 PERMISSION_DENIED |插件能够从 RPC 中存在的秘密派生或以其他方式推断身份，但该身份无权调用 RPC。 |系统管理员应该确保授予必要的权限，之后调用者可以重试尝试的 RPC。 |
+|卷的待处理操作 | 10 ABORTED |表示指定卷已经有一个操作挂起。一般来说，Cluster Orchestrator (CO) 负责确保在给定时间每个卷“进行中”的调用不超过一个。但是，在某些情况下，CO 可能会丢失状态（例如，当 CO 崩溃并重新启动时），并且可能会同时为同一卷发出多个调用。插件应该尽可能优雅地处理这个问题，并且可以返回这个错误代码来拒绝二次调用。 |调用方应确保指定卷没有其他挂起的调用，然后使用指数回退重试。 |
+|调用未实现 | 12 UNIMPLEMENTED |调用的 RPC 未由插件实现或在插件的当前操作模式下禁用。 |呼叫者不得重试。调用者可以调用 `GetPluginCapabilities`、`ControllerGetCapabilities` 或 `NodeGetCapabilities` 来发现插件功能。 |
+|未认证 | 16 UNAUTHENTICATED |调用的 RPC 不携带对身份验证有效的机密。 |调用者应修复 RPC 中提供的秘密，或以其他方式重新激活所述秘密，以便它们将通过插件对尝试的 RPC 的身份验证，之后调用者可以重试尝试的 RPC。 |
+
 The status `message` MUST contain a human readable description of error, if the status `code` is not `OK`.
 This string MAY be surfaced by CO to end users.
 
+如果状态 `code` 不是 `OK`，状态`message` 必须包含人类可读的错误描述。
+该字符串可能由 CO 向最终用户公开。
+
 The status `details` MUST be empty. In the future, this spec MAY require `details` to return a machine-parsable protobuf message if the status `code` is not `OK` to enable CO's to implement smarter error handling and fault resolution.
+
+状态“详细信息”必须为空。 将来，如果状态 `code` 不是 `OK`，此规范可能会要求 `details` 返回机器可解析的 protobuf 消息，以使 CO 实现更智能的错误处理和故障解决。
 
 ### Secrets Requirements
 
@@ -487,6 +626,16 @@ An SP SHALL advertise the requirements for required secret keys and values in do
 CO SHALL permit passing through the required secrets.
 A CO MAY pass the same secrets to all RPCs, therefore the keys for all unique secrets that an SP expects MUST be unique across all CSI operations.
 This information is sensitive and MUST be treated as such (not logged, etc.) by the CO.
+
+插件可能需要 Secret 来完成 RPC 请求。
+秘密是字符串到字符串的映射，其中密钥标识秘密的名称（例如“用户名”或“密码”），而值包含秘密数据（例如“bob”或“abc123”）。
+每个键必须由字母数字字符、“-”、“_”或“.”组成。
+每个值必须包含一个有效的字符串。
+SP 可以选择通过使用二进制到文本编码方案（如 base64）来接受二进制（非字符串）数据。
+SP 应在文档中公布对所需密钥和值的要求。
+CO 应允许通过所需的秘密。
+CO 可以将相同的秘密传递给所有 RPC，因此 SP 期望的所有唯一秘密的密钥在所有 CSI 操作中必须是唯一的。
+此信息是敏感信息，必须由 CO 处理（不记录等）。
 
 ### Identity Service RPC
 
