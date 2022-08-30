@@ -2897,6 +2897,18 @@ message NodeExpandVolumeResponse {
     This will likely change in a future version of this specification to support non-UNIX platforms.
 * All supported RPC services MUST be available at the listen address of the Plugin.
 
+>
+
+* CO 应使用 gRPC 与插件通信以访问“身份”，以及（可选）“控制器”和“节点”服务。
+   * proto3 应该与 gRPC 一起使用，根据 [官方建议](http://www.grpc.io/docs/guides/#protocol-buffer-versions)。
+   * 所有插件都应实现所需的身份服务 RPC。
+     `ControllerGetCapabilities` 和 `NodeGetCapabilities` RPC 调用报告了对可选 RPC 的支持。
+* CO 应通过 `CSI_ENDPOINT` 环境变量为插件提供监听地址。
+   插件组件应在指定的监听地址上创建、绑定和监听 RPC。
+   * 只有 UNIX 域套接字可以用作端点。
+     这可能会在本规范的未来版本中更改以支持非 UNIX 平台。
+* 所有支持的 RPC 服务必须在插件的监听地址可用。
+
 ### Security
 
 * The CO operator and Plugin Supervisor SHOULD take steps to ensure that any and all communication between the CO and Plugin Service are secured according to best practices.
@@ -2906,9 +2918,22 @@ message NodeExpandVolumeResponse {
     Proxy components transporting communication over IP networks SHALL be responsible for securing communications over such networks.
 * Both the CO and Plugin SHOULD avoid accidental leakage of sensitive information (such as redacting such information from log files).
 
+>
+
+* CO 操作员和插件主管应采取措施确保 CO 和插件服务之间的任何和所有通信都根据最佳实践得到保护。
+* CO 和插件之间的通信应通过 UNIX 域套接字传输。
+  * gRPC 与 UNIX 域套接字兼容； CO 操作员和插件主管有责任使用 OS 文件系统 ACL 和/或其他特定于 OS 的安全上下文工具正确保护对域套接字的访问。
+  * SP 提供独立的插件控制器设备或与 UNIX 域套接字不兼容的其他远程组件必须提供代理 UNIX 域套接字和远程组件之间通信的软件组件。
+    通过 IP 网络传输通信的代理组件应负责保护此类网络上的通信。
+* CO 和插件都应该避免敏感信息的意外泄漏（例如从日志文件中编辑此类信息）。
+
 ### Debugging
 
 * Debugging and tracing are supported by external, CSI-independent additions and extensions to gRPC APIs, such as [OpenTracing](https://github.com/grpc-ecosystem/grpc-opentracing).
+
+>
+
+* gRPC API 的外部、独立于 CSI 的添加和扩展支持调试和跟踪，例如 [OpenTracing](https://github.com/grpc-ecosystem/grpc-opentracing)。
 
 ## Configuration and Operation
 
@@ -2918,6 +2943,11 @@ message NodeExpandVolumeResponse {
 * An operator SHALL configure the CO to connect to the Plugin via the listen address identified by `CSI_ENDPOINT` variable.
 * With exception to sensitive data, Plugin configuration SHOULD be specified by environment variables, whenever possible, instead of by command line flags or bind-mounted/injected files.
 
+>
+
+* `CSI_ENDPOINT` 环境变量应由插件主管提供给插件。
+* 操作员应配置 CO 以通过“CSI_ENDPOINT”变量标识的监听地址连接到插件。
+* 除敏感数据外，插件配置应尽可能由环境变量指定，而不是由命令行标志或绑定安装/注入的文件指定。
 
 #### Plugin Bootstrap Example
 
@@ -2928,12 +2958,27 @@ message NodeExpandVolumeResponse {
 * CO: observe that socket now exists, establish connection.
 * CO: invoke `GetPluginCapabilities`.
 
+>
+
+* 主管 -> 插件：`CSI_ENDPOINT=unix:///path/to/unix/domain/socket.sock`。
+* Operator -> CO：在端点 `unix:///path/to/unix/domain/socket.sock` 使用插件。
+* CO：监控`/path/to/unix/domain/socket.sock`。
+* 插件：读取`CSI_ENDPOINT`，在指定路径创建UNIX套接字，绑定和监听。
+* CO：观察socket现在存在，建立连接。
+* CO：调用“GetPluginCapabilities”。
+
 #### Filesystem
 
 * Plugins SHALL NOT specify requirements that include or otherwise reference directories and/or files on the root filesystem of the CO.
 * Plugins SHALL NOT create additional files or directories adjacent to the UNIX socket specified by `CSI_ENDPOINT`; violations of this requirement constitute "abuse".
   * The Plugin Supervisor is the ultimate authority of the directory in which the UNIX socket endpoint is created and MAY enforce policies to prevent and/or mitigate abuse of the directory by Plugins.
 
+>
+
+* 插件不得指定包含或以其他方式引用 CO 根文件系统上的目录和/或文件的要求。
+* 插件不得在 `CSI_ENDPOINT` 指定的 UNIX 套接字附近创建其他文件或目录； 违反这一要求构成“滥用”。
+   * 插件主管是创建 UNIX 套接字端点的目录的最终权威，并且可以强制执行策略以防止和/或减轻插件对目录的滥用。
+   
 ### Supervised Lifecycle Management
 
 * For Plugins packaged in software form:
@@ -2943,12 +2988,28 @@ message NodeExpandVolumeResponse {
   * A Plugin Supervisor MAY programmatically evaluate or otherwise scan a Plugin Package’s image manifest in order to discover configurable environment variables.
   * A Plugin SHALL NOT assume that an operator or Plugin Supervisor will scan an image manifest for environment variables.
 
+>
+
+* 对于以软件形式打包的插件：
+   * 插件包应该使用有据可查的容器镜像格式（例如，Docker、OCI）。
+   * 除非在下面的部分中另有说明，否则所选的包图像格式可以将可配置的插件属性公开为环境变量。
+     如此暴露的变量应该在图像清单中分配默认值。
+   * 插件主管可以以编程方式评估或以其他方式扫描插件包的图像清单，以发现可配置的环境变量。
+   * 插件不应假定操作员或插件主管会扫描图像清单以查找环境变量。
+
 #### Environment Variables
 
 * Variables defined by this specification SHALL be identifiable by their `CSI_` name prefix.
 * Configuration properties not defined by the CSI specification SHALL NOT use the same `CSI_` name prefix; this prefix is reserved for common configuration properties defined by the CSI specification.
 * The Plugin Supervisor SHOULD supply all RECOMMENDED CSI environment variables to a Plugin.
 * The Plugin Supervisor SHALL supply all REQUIRED CSI environment variables to a Plugin.
+
+>
+
+* 本规范定义的变量应通过其 `CSI_` 名称前缀来识别。
+* CSI 规范未定义的配置属性不得使用相同的“CSI_”名称前缀； 这个前缀是为 CSI 规范定义的通用配置属性保留的。
+* 插件主管应该向插件提供所有推荐的 CSI 环境变量。
+* 插件主管应向插件提供所有必需的 CSI 环境变量。
 
 ##### `CSI_ENDPOINT`
 
@@ -2964,11 +3025,28 @@ Note: All UNIX endpoints SHALL end with `.sock`. See [gRPC Name Resolution](http
 
 This variable is REQUIRED.
 
+插件应托管 CSI RPC 服务的网络端点。 一般格式为：
+
+     {scheme}://{authority}{endpoint}
+
+插件应支持以下地址类型：
+
+     unix:///path/to/unix/socket.sock
+
+注意：所有 UNIX 端点都应以 `.sock` 结尾。 请参阅 [gRPC 名称解析](https://github.com/grpc/grpc/blob/master/doc/naming.md)。
+
+这个变量是必需的。
+
 #### Operational Recommendations
 
 The Plugin Supervisor expects that a Plugin SHALL act as a long-running service vs. an on-demand, CLI-driven process.
 
 Supervised plugins MAY be isolated and/or resource-bounded.
+
+
+插件主管期望插件应充当长期运行的服务，而不是按需、CLI 驱动的流程。
+
+受监督的插件可以是隔离的和/或资源受限的。
 
 ##### Logging
 
@@ -2980,6 +3058,16 @@ Supervised plugins MAY be isolated and/or resource-bounded.
   * Log lifecycle management ownership and related guidance (size limits, rate limits, rolling, archiving, expunging, etc.) applicable to the logging mechanism embedded within the Plugin.
 * Plugins SHOULD NOT write potentially sensitive data to logs (e.g. secrets).
 
+>
+
+* 插件应该只生成标准输出和/或标准错误的日志消息。
+   * 在这种情况下，插件主管应承担所有日志生命周期管理的责任。
+* 偏离上述建议的插件实现应清楚明确地记录以下内容：
+   * 记录配置标志和/或变量，包括工作示例配置。
+   * 默认日志目的地（如果没有指定配置，日志会去哪里？）
+   * 适用于嵌入在插件中的日志机制的日志生命周期管理所有权和相关指南（大小限制、速率限制、滚动、归档、删除等）。
+* 插件不应将潜在敏感数据写入日志（例如机密）。
+
 ##### Available Services
 
 * Plugin Packages MAY support all or a subset of CSI services; service combinations MAY be configurable at runtime by the Plugin Supervisor.
@@ -2987,15 +3075,31 @@ Supervised plugins MAY be isolated and/or resource-bounded.
   * This specification does not dictate the mechanism by which mode of operation MUST be discovered, and instead places that burden upon the SP.
 * Misconfigured plugin software SHOULD fail-fast with an OS-appropriate error code.
 
+>
+* 插件包可以支持全部或部分 CSI 服务； 服务组合可以由插件主管在运行时配置。
+   * 插件必须知道它正在运行的“模式”（例如节点、控制器或两者）。
+   * 本规范没有规定必须发现哪种操作模式的机制，而是将这种负担置于 SP 身上。
+* 错误配置的插件软件应该使用适合操作系统的错误代码快速失败。
+
 ##### Linux Capabilities
 
 * Plugin Supervisor SHALL guarantee that plugins will have `CAP_SYS_ADMIN` capability on Linux when running on Nodes.
 * Plugins SHOULD clearly document any additionally required capabilities and/or security context.
 
+>
+
+* 插件主管应保证插件在节点上运行时在 Linux 上具有 `CAP_SYS_ADMIN` 能力。
+* 插件应该清楚地记录任何额外需要的功能和/或安全上下文。
+
 ##### Namespaces
 
 * A Plugin SHOULD NOT assume that it is in the same [Linux namespaces](https://en.wikipedia.org/wiki/Linux_namespaces) as the Plugin Supervisor.
   The CO MUST clearly document the [mount propagation](https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt) requirements for Node Plugins and the Plugin Supervisor SHALL satisfy the CO’s requirements.
+
+>
+
+* 插件不应假定它与插件主管位于相同的 [Linux 命名空间](https://en.wikipedia.org/wiki/Linux_namespaces) 中。
+   CO 必须清楚地记录节点插件的 [挂载传播](https://www.kernel.org/doc/Documentation/filesystems/sharedsubtree.txt) 要求，并且插件主管应满足 CO 的要求。
 
 ##### Cgroup Isolation
 
@@ -3003,7 +3107,17 @@ Supervised plugins MAY be isolated and/or resource-bounded.
 * An operator or Plugin Supervisor MAY configure the devices cgroup subsystem to ensure that a Plugin MAY access requisite devices.
 * A Plugin Supervisor MAY define resource limits for a Plugin.
 
+>
+
+* 插件可能受 cgroups 约束。
+* 操作员或插件主管可以配置设备 cgroup 子系统，以确保插件可以访问必要的设备。
+* 插件主管可以为插件定义资源限制。
+
 ##### Resource Requirements
 
 * SPs SHOULD unambiguously document all of a Plugin’s resource requirements.
+
+>
+
+* SP 应该明确记录插件的所有资源需求。
 
