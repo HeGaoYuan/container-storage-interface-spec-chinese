@@ -678,6 +678,7 @@ The general flow of the success case MAY be as follows (protos illustrated in YA
 ```protobuf
 message GetPluginInfoRequest {
   // Intentionally empty.
+  // 故意为空。
 }
 
 message GetPluginInfoResponse {
@@ -688,12 +689,19 @@ message GetPluginInfoResponse {
   // characters or less, beginning and ending with an alphanumeric
   // character ([a-z0-9A-Z]) with dashes (-), dots (.), and
   // alphanumerics between. This field is REQUIRED.
+
+  // 名称必须遵循域名符号格式(https://tools.ietf.org/html/rfc1035#section-2.3.1)。
+   // 它应该包括插件的主机公司名称和插件名称，尽量减少碰撞的可能性。
+  // 必须是 63 字符或更少，以字母数字开头和结尾字符 ([a-z0-9A-Z]) 带有破折号 (-)、点 (.) 和
+  // 之间的字母数字。 这是必填栏。
   string name = 1;
 
   // This field is REQUIRED. Value of this field is opaque to the CO.
+  // 这是必填栏。 该字段的值对 CO 是不透明的。
   string vendor_version = 2;
 
   // This field is OPTIONAL. Values are opaque to the CO.
+  // 这个字段是可选的。 值对 CO 是不透明的。
   map<string, string> manifest = 3;
 }
 ```
@@ -701,6 +709,8 @@ message GetPluginInfoResponse {
 ##### GetPluginInfo Errors
 
 If the plugin is unable to complete the GetPluginInfo call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+
+如果插件无法成功完成 GetPluginInfo 调用，它必须在 gRPC 状态中返回一个 non-ok gRPC 代码。
 
 #### `GetPluginCapabilities`
 
