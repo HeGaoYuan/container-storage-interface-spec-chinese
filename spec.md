@@ -717,18 +717,23 @@ If the plugin is unable to complete the GetPluginInfo call successfully, it MUST
 This REQUIRED RPC allows the CO to query the supported capabilities of the Plugin "as a whole": it is the grand sum of all capabilities of all instances of the Plugin software, as it is intended to be deployed.
 All instances of the same version (see `vendor_version` of `GetPluginInfoResponse`) of the Plugin SHALL return the same set of capabilities, regardless of both: (a) where instances are deployed on the cluster as well as; (b) which RPCs an instance is serving.
 
+这个 REQUIRED RPC 允许 CO 查询插件“作为一个整体”支持的功能：它是插件软件所有实例的所有功能的总和，因为它打算被部署。 插件的相同版本（请参阅 GetPluginInfoResponse 的 vendor_version）的所有实例应返回相同的一组功能，无论两者如何：（a）实例部署在集群上的位置以及； (b) 实例正在服务哪些 RPC。
+
 ```protobuf
 message GetPluginCapabilitiesRequest {
   // Intentionally empty.
+  // 故意为空。
 }
 
 message GetPluginCapabilitiesResponse {
   // All the capabilities that the controller service supports. This
   // field is OPTIONAL.
+  // 控制器服务支持的所有功能。 这个字段是可选的。
   repeated PluginCapability capabilities = 1;
 }
 
 // Specifies a capability of the plugin.
+// 指定插件的能力。
 message PluginCapability {
   message Service {
     enum Type {
@@ -741,6 +746,12 @@ message PluginCapability {
       // The presence of this capability determines whether the CO will
       // attempt to invoke the REQUIRED ControllerService RPCs, as well
       // as specific RPCs as indicated by ControllerGetCapabilities.
+
+      // CONTROLLER_SERVICE 表示 Plugin 为控制器服务。 插件应该提供这种能力。
+      // 在极少数情况下，某些插件可能希望省略 ControllerService 完全来自他们的实现，
+           // 但是这样不应该是常见的情况。
+      // 这个能力的存在决定了 CO 是否会也尝试调用 REQUIRED ControllerService RPC
+      // 作为由 ControllerGetCapabilities 指示的特定 RPC。
       CONTROLLER_SERVICE = 1;
 
       // VOLUME_ACCESSIBILITY_CONSTRAINTS indicates that the volumes for
@@ -749,6 +760,13 @@ message PluginCapability {
       // CreateVolumeRequest along with the topology information
       // returned by NodeGetInfo to ensure that a given volume is
       // accessible from a given node when scheduling workloads.
+
+      // VOLUME_ACCESSIBILITY_CONSTRAINTS 表示卷
+      // 这个插件可能不能被所有节点平等地访问
+      // 簇。 CO 必须使用由返回的拓扑信息
+      // CreateVolumeRequest 连同拓扑信息
+      // 由 NodeGetInfo 返回以确保给定的卷是
+      // 调度工作负载时可从给定节点访问。
       VOLUME_ACCESSIBILITY_CONSTRAINTS = 2;
     }
     Type type = 1;
@@ -781,6 +799,30 @@ message PluginCapability {
       //   upon a node, the Plugin may set the ONLINE volume
       //   expansion capability and implement NodeExpandVolume but not
       //   ControllerExpandVolume.
+
+      // ONLINE 表示卷在发布到时可以扩展
+      // 一个节点。当插件实现此功能时，它必须
+      // 实现 EXPAND_VOLUME 控制器功能或
+      // EXPAND_VOLUME 节点能力或两者兼而有之。当插件支持
+      // ONLINE 卷扩展，也有 EXPAND_VOLUME
+      // 控制器能力，那么插件必须支持扩展
+      // 当前发布并在节点上可用的卷。当一个
+      // 插件支持在线扩容，也有
+      // EXPAND_VOLUME 节点能力然后插件可以支持
+      // 通过 NodeExpandVolume 扩展节点发布的卷。
+      //
+      // 示例 1：给定一个共享文件系统卷（例如 GlusterFs），
+      // 插件可以设置在线扩容能力和
+      // 实现 ControllerExpandVolume 但不实现 NodeExpandVolume。
+      //
+      // 示例 2：给定一个块存储卷类型（例如 EBS），
+      // 插件可以设置在线扩容能力和
+      // 同时实现 ControllerExpandVolume 和 NodeExpandVolume。
+      //
+      // 示例 3：给定一个仅支持卷扩展的插件
+      // 在一个节点上，插件可以设置在线音量
+      // 扩展能力和实现 NodeExpandVolume 但不是
+      // 控制器扩展音量。
       ONLINE = 1;
 
       // OFFLINE indicates that volumes currently published and
@@ -795,6 +837,19 @@ message PluginCapability {
       //   controller-published) volumes, the Plugin may indicate
       //   OFFLINE volume expansion support and implement both
       //   ControllerExpandVolume and NodeExpandVolume.
+
+      // OFFLINE 表示当前发布的卷和
+      // 在节点上可用，不得通过以下方式扩展
+      // 控制器扩展音量。 当插件支持离线音量时
+      // 扩展它必须实现 EXPAND_VOLUME 控制器
+      // 能力或 EXPAND_VOLUME 控制器能力和
+      // EXPAND_VOLUME 节点能力。
+      //
+      // 示例 1：给定一个块存储卷类型（例如 Azure 磁盘）
+      // 不支持“节点附加”的扩展（即
+      // 控制器发布）卷，插件可能会指示
+      //离线卷扩展支持并实现两者
+      // ControllerExpandVolume 和 NodeExpandVolume。
       OFFLINE = 2;
     }
     Type type = 1;
@@ -802,6 +857,7 @@ message PluginCapability {
 
   oneof type {
     // Service that the plugin supports.
+    // 插件支持的服务。
     Service service = 1;
     VolumeExpansion volume_expansion = 2;
   }
@@ -811,6 +867,8 @@ message PluginCapability {
 ##### GetPluginCapabilities Errors
 
 If the plugin is unable to complete the GetPluginCapabilities call successfully, it MUST return a non-ok gRPC code in the gRPC status.
+
+如果插件无法成功完成 GetPluginCapabilities 调用，它必须在 gRPC 状态中返回一个 non-ok gRPC 代码。
 
 #### `Probe`
 
