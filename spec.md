@@ -7,20 +7,20 @@ Authors:
 * James DeFelice <<james@mesosphere.io>> (@jdef)
 * <container-storage-interface-working-group@googlegroups.com>
 
-## Notational Conventions
+## Notational Conventions 符号约定
 
 The keywords "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" are to be interpreted as described in [RFC 2119](http://tools.ietf.org/html/rfc2119) (Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels", BCP 14, RFC 2119, March 1997).
 
-关键字“MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY”和“OPTIONAL”将按照 [RFC 2119](http://tools.ietf.org/html/rfc2119) 中的描述进行解释（Bradner, S.，“在 RFC 中使用的关键字以指示需求级别”，BCP 14，RFC 2119 ，1997 年 3 月）。
+关键字“MUST”、“MUST NOT”、“REQUIRED”、“SHALL”、“SHALL NOT”、“SHOULD”、“SHOULD NOT”、“RECOMMENDED”、“NOT RECOMMENDED”、“MAY”和“OPTIONAL”将按照 [RFC 2119](http://tools.ietf.org/html/rfc2119) 中的描述进行解释（Bradner, S.，“RFC 中用于指示需求级别的关键字”，BCP 14，RFC 2119 ，1997 年 3 月）。
 
 The key words "unspecified", "undefined", and "implementation-defined" are to be interpreted as described in the [rationale for the C99 standard](http://www.open-std.org/jtc1/sc22/wg14/www/C99RationaleV5.10.pdf#page=18).
 
-关键字“未指定”、“未定义”和“实现定义”将按照[C99 标准的基本原理](http://www.open-std.org/jtc1/sc22/wg14) 中的说明进行解释/www/C99RationaleV5.10.pdf#page=18)。
+关键字“unspecified”，“undefined”和“implementation-defined”将按照[C99 标准的基本原理](http://www.open-std.org/jtc1/sc22/wg14/www/C99RationaleV5.10.pdf#page=18) 中的说明进行解释。
 
 An implementation is not compliant if it fails to satisfy one or more of the MUST, REQUIRED, or SHALL requirements for the protocols it implements.
 An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL requirements for the protocols it implements.
 
-如果一个实现不能满足它实现的协议的一个或多个 MUST、REQUIRED 或 SHALL 要求，则它是不兼容的。
+如果一个实现不能满足它实现的协议的一个或多个 MUST、REQUIRED 或 SHALL 要求，则它是不合规的。
 如果一个实现满足它实现的协议的所有 MUST、REQUIRED 和 SHALL 要求，那么它就是合规的。
 
 ## Terminology
