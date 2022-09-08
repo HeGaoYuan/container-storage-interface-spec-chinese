@@ -23,7 +23,7 @@ An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL
 如果一个实现不能满足它实现的协议的一个或多个 MUST、REQUIRED 或 SHALL 要求，则它是不合规的。
 如果一个实现满足它实现的协议的所有 MUST、REQUIRED 和 SHALL 要求，那么它就是合规的。
 
-## Terminology
+## Terminology 术语表
 
 | Term              | Definition                                       |
 |-------------------|--------------------------------------------------|
@@ -37,6 +37,19 @@ An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL
 | Plugin            | Aka “plugin implementation”, a gRPC endpoint that implements the CSI Services.                                        |
 | Plugin Supervisor | Process that governs the lifecycle of a Plugin, MAY be the CO.                                                        |
 | Workload          | The atomic unit of "work" scheduled by a CO. This MAY be a container or a collection of containers.                   |
+
+| 术语               | 定义                                             |
+|-------------------|--------------------------------------------------|
+| Volume            | 在容器编排系统管理的容器里通过CSI提供的存储单元。                                                                             |
+| Block Volume      | 在容器内显示为块设备的卷。                                                                                                |
+| Mounted Volume    | 使用指定的文件系统挂载并显示为容器内的目录的卷。                                                                              |
+| CO                | 容器编排系统，其会使用CSI RPC接口与插件通信。                                                                               |
+| SP                | 存储提供方，也就是CSI插件实现的供应商。                                                                                     |
+| RPC               | [远程过程调用](https://en.wikipedia.org/wiki/Remote_procedure_call).                                                    |
+| Node              | A host where the user workload will be running, uniquely identifiable from the perspective of a Plugin by a node ID.  |
+| Plugin            | 又名“插件实现”，一个实现 CSI 服务的 gRPC 端点。                                                                             |
+| Plugin Supervisor | 管理插件生命周期的进程，可能是容器编排系统     。                                                                             |
+| Workload          | 由容器编排系统调度的最小工作单元。它可能是一个容器或者多个容器的集合。                                                            |
 
 ## Objective
 
