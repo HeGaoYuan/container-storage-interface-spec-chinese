@@ -51,13 +51,13 @@ An implementation is compliant if it satisfies all the MUST, REQUIRED, and SHALL
 | Plugin Supervisor | 管理插件生命周期的进程，可能是容器编排系统     。                                                                             |
 | Workload          | 由容器编排系统调度的最小工作单元。它可能是一个容器或者多个容器的集合。                                                            |
 
-## Objective
+## Objective 目标
 
 To define an industry standard “Container Storage Interface” (CSI) that will enable storage vendors (SP) to develop a plugin once and have it work across a number of container orchestration (CO) systems.
 
-定义一个行业标准的“容器存储接口”（CSI），使存储供应商（SP）能够开发一个插件并让它在多个容器编排（CO）系统中工作。
+定义一个行业标准的“容器存储接口”（CSI），使存储供应商（SP）能够开发一个插件一次，就能在多个容器编排系统（CO）中工作。
 
-### Goals in MVP
+### Goals in MVP 最简可行产品的目标
 
 The Container Storage Interface (CSI) will
 
@@ -76,12 +76,12 @@ The Container Storage Interface (CSI) will
 
 容器存储接口 (CSI) 将
 
-* 使 SP 作者能够编写一个符合 CSI 的插件，该插件可以在所有实现 CSI 的 CO 上“正常工作”。
-*定义启用的API（RPC）：
+* 使 SP 作者能够编写一个符合 CSI 的插件，该插件就可以在所有实现 CSI 的 CO 上“正常工作”。
+* 定义实现如下功能的 API（RPC）：
    * 卷的动态配置和取消配置。
-   *从节点附加或分离卷。
+   * 从节点附着或分离卷。
    * 从节点挂载/卸载卷。
-   * 块卷和可挂载卷的消耗。
+   * 块卷和可挂载卷的使用。
    * 本地存储提供程序（例如，设备映射器、lvm）。
    * 创建和删除快照（快照的来源是一个卷）。
    * 从快照配置新卷（恢复快照，其中原始卷中的数据被擦除并替换为快照中的数据，超出范围）。
@@ -89,7 +89,7 @@ The Container Storage Interface (CSI) will
    * 描述主管配置插件的过程。
    * 容器部署注意事项（`CAP_SYS_ADMIN`、挂载命名空间等）。
 
-### Non-Goals in MVP
+### Non-Goals in MVP 不属于最简可行产品的目标
 
 The Container Storage Interface (CSI) explicitly will not define, provide, or dictate:
 
@@ -103,11 +103,11 @@ The Container Storage Interface (CSI) explicitly will not define, provide, or di
   Compliance is determined by the Plugin implementation (and any backend storage system(s) upon which it depends).
   CSI SHALL NOT obstruct a Plugin Supervisor or CO from interacting with Plugin-managed volumes in a POSIX-compliant manner.
 
-容器存储接口 (CSI) 明确不会定义、提供或规定：
+容器存储接口 (CSI) 将明确不会定义、提供或规定：
 
-* 插件主管管理插件生命周期的具体机制，包括：
-   * 如何维护状态（例如连接、安装等）。
-   * 如何部署、安装、升级、卸载、监控或重生（以防意外终止）插件。
+* 插件程序管理插件生命周期的具体机制，包括：
+   * 如何维护状态（例如什么是附着、挂载等）。
+   * 如何部署、安装、升级、卸载、监控或重启（以防意外终止）插件。
 * 代表“存储等级”（又名“存储类别”）的第一类消息结构/字段。
 * 协议级认证和授权。
 * 插件的包装。
